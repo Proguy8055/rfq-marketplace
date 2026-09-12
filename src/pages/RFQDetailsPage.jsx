@@ -17,6 +17,14 @@ function RFQDetailsPage() {
   const [error, setError] = useState("");
   const [quotesError, setQuotesError] = useState("");
 
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editQuantity, setEditQuantity] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isSupplier = user?.role === "SUPPLIER";
   const isBuyer = user?.role === "BUYER";
@@ -54,6 +62,51 @@ function RFQDetailsPage() {
 
     loadRFQ();
   }, [id, isBuyer]);
+
+  const startEditing = () => {
+    setEditTitle(rfq.title);
+    setEditDescription(rfq.description);
+    setEditQuantity(rfq.quantity);
+    setEditLocation(rfq.location);
+
+    const deadlineDate = new Date(rfq.deadline);
+    const formattedDeadline = deadlineDate.toISOString().split("T")[0];
+
+    setEditDeadline(formattedDeadline);
+    setEditing(true);
+    setMessage("");
+    setError("");
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+
+    setSavingEdit(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const data = await apiRequest(`/rfqs/${id}`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription,
+          quantity: Number(editQuantity),
+          location: editLocation,
+          deadline: new Date(editDeadline).toISOString(),
+        }),
+      });
+
+      setRfq(data.rfq);
+      setEditing(false);
+      setMessage("RFQ updated successfully!");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleCloseRFQ = async () => {
     setMessage("");
@@ -135,6 +188,7 @@ function RFQDetailsPage() {
   return (
     <div className="details-page">
       <AppNavbar />
+
       <div className="details-container">
         <div className="details-header">
           <div>
@@ -151,40 +205,123 @@ function RFQDetailsPage() {
           </Link>
         </div>
 
-        <div className="rfq-details-card">
-          <h2>Product / Service</h2>
-          <p className="detail-value">{rfq.title}</p>
+        {error && <p className="auth-error">{error}</p>}
+        {message && <p>{message}</p>}
 
-          <div className="detail-grid">
-            <div>
-              <span>Quantity</span>
-              <strong>{rfq.quantity}</strong>
+        {isOwner && rfq.status === "OPEN" && !editing && (
+          <div style={{ marginBottom: "24px" }}>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={startEditing}
+            >
+              Edit RFQ
+            </button>
+          </div>
+        )}
+
+        {editing ? (
+          <div className="quote-card">
+            <h2>Edit RFQ</h2>
+
+            <form onSubmit={handleEditSubmit}>
+              <label>Product / Service</label>
+              <input
+                type="text"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                required
+              />
+
+              <label>Description</label>
+              <textarea
+                rows="4"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                required
+              />
+
+              <label>Quantity</label>
+              <input
+                type="number"
+                min="1"
+                value={editQuantity}
+                onChange={(e) => setEditQuantity(e.target.value)}
+                required
+              />
+
+              <label>Delivery Location</label>
+              <input
+                type="text"
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
+                required
+              />
+
+              <label>Deadline</label>
+              <input
+                type="date"
+                value={editDeadline}
+                onChange={(e) => setEditDeadline(e.target.value)}
+                required
+              />
+
+              <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? "Saving..." : "Save Changes"}
+                </button>
+
+                <button
+                  type="button"
+                  className="secondary-btn"
+                  onClick={() => setEditing(false)}
+                  disabled={savingEdit}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="rfq-details-card">
+            <h2>Product / Service</h2>
+            <p className="detail-value">{rfq.title}</p>
+
+            <div className="detail-grid">
+              <div>
+                <span>Quantity</span>
+                <strong>{rfq.quantity}</strong>
+              </div>
+
+              <div>
+                <span>Location</span>
+                <strong>{rfq.location}</strong>
+              </div>
+
+              <div>
+                <span>Deadline</span>
+                <strong>
+                  {new Date(rfq.deadline).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </strong>
+              </div>
             </div>
 
-            <div>
-              <span>Location</span>
-              <strong>{rfq.location}</strong>
-            </div>
-
-            <div>
-              <span>Deadline</span>
-              <strong>
-                {new Date(rfq.deadline).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </strong>
+            <div className="description-section">
+              <h3>Description</h3>
+              <p>{rfq.description}</p>
             </div>
           </div>
+        )}
 
-          <div className="description-section">
-            <h3>Description</h3>
-            <p>{rfq.description}</p>
-          </div>
-        </div>
-
-        {isOwner && rfq.status === "OPEN" && (
+        {isOwner && rfq.status === "OPEN" && !editing && (
           <div style={{ marginTop: "24px" }}>
             <button
               type="button"
@@ -221,7 +358,6 @@ function RFQDetailsPage() {
                   <div className="rfq-card" key={quote.id}>
                     <div>
                       <h3>{quote.supplier.name}</h3>
-
                       <p>{quote.supplier.email}</p>
 
                       <div className="rfq-meta">
@@ -280,7 +416,6 @@ function RFQDetailsPage() {
               ></textarea>
 
               {error && <p className="auth-error">{error}</p>}
-
               {message && <p>{message}</p>}
 
               <button

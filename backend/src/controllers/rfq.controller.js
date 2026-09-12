@@ -120,11 +120,84 @@ const updateRFQ = async (req, res) => {
       });
     }
 
-    const { status } = req.body;
+    const {
+      title,
+      description,
+      quantity,
+      location,
+      deadline,
+      status,
+    } = req.body;
 
-    if (!status || !["OPEN", "CLOSED"].includes(status)) {
+    const data = {};
+
+    if (title !== undefined) {
+      if (!title.trim()) {
+        return res.status(400).json({
+          message: "Title is required",
+        });
+      }
+
+      data.title = title.trim();
+    }
+
+    if (description !== undefined) {
+      if (!description.trim()) {
+        return res.status(400).json({
+          message: "Description is required",
+        });
+      }
+
+      data.description = description.trim();
+    }
+
+    if (quantity !== undefined) {
+      const parsedQuantity = Number(quantity);
+
+      if (!Number.isInteger(parsedQuantity) || parsedQuantity < 1) {
+        return res.status(400).json({
+          message: "Quantity must be at least 1",
+        });
+      }
+
+      data.quantity = parsedQuantity;
+    }
+
+    if (location !== undefined) {
+      if (!location.trim()) {
+        return res.status(400).json({
+          message: "Location is required",
+        });
+      }
+
+      data.location = location.trim();
+    }
+
+    if (deadline !== undefined) {
+      const parsedDeadline = new Date(deadline);
+
+      if (Number.isNaN(parsedDeadline.getTime())) {
+        return res.status(400).json({
+          message: "Please provide a valid deadline",
+        });
+      }
+
+      data.deadline = parsedDeadline;
+    }
+
+    if (status !== undefined) {
+      if (!["OPEN", "CLOSED"].includes(status)) {
+        return res.status(400).json({
+          message: "Status must be OPEN or CLOSED",
+        });
+      }
+
+      data.status = status;
+    }
+
+    if (Object.keys(data).length === 0) {
       return res.status(400).json({
-        message: "Status must be OPEN or CLOSED",
+        message: "No fields provided for update",
       });
     }
 
@@ -132,9 +205,7 @@ const updateRFQ = async (req, res) => {
       where: {
         id: rfqId,
       },
-      data: {
-        status,
-      },
+      data,
     });
 
     res.json({

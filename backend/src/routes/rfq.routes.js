@@ -68,7 +68,36 @@ router.patch(
   authenticate,
   authorize("BUYER"),
   [
+    body("title")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Title is required"),
+
+    body("description")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Description is required"),
+
+    body("quantity")
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage("Quantity must be at least 1"),
+
+    body("location")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Location is required"),
+
+    body("deadline")
+      .optional()
+      .isISO8601()
+      .withMessage("Please provide a valid deadline"),
+
     body("status")
+      .optional()
       .isIn(["OPEN", "CLOSED"])
       .withMessage("Status must be OPEN or CLOSED"),
   ],
