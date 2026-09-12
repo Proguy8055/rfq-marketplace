@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://rfq-marketplace-zdok.onrender.com/api";
 
 export const apiRequest = async (endpoint, options = {}) => {
   const response = await fetch(`${API_URL}${endpoint}`, {
